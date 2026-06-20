@@ -41,7 +41,38 @@
     background:#000; box-shadow:0 24px 70px rgba(0,0,0,.45);
     border:1px solid rgba(255,255,255,.08);
   }
-  video{display:block; width:100%; height:auto; background:#000}
+  .vidwrap{position:relative; line-height:0; background:#000}
+  video{display:block; width:100%; height:auto; background:#000; cursor:pointer}
+  .bigplay{
+    position:absolute; inset:0; margin:auto;
+    width:clamp(64px,9vw,88px); height:clamp(64px,9vw,88px);
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.42); color:#fff; border:0; border-radius:50%;
+    cursor:pointer; transition:opacity .2s ease, transform .12s ease, background .2s ease;
+  }
+  .bigplay:hover{transform:scale(1.06); background:var(--naranja)}
+  .bigplay svg{width:42%; height:42%; margin-left:6%}
+  .bigplay.hidden{opacity:0; pointer-events:none}
+  .ctrl{
+    display:flex; align-items:center; gap:clamp(8px,1.4vw,14px);
+    padding:10px clamp(10px,1.6vw,16px); background:var(--azul-dk);
+  }
+  .ic{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:38px; height:38px; flex:0 0 auto;
+    background:transparent; border:0; color:#fff; cursor:pointer;
+    border-radius:9px; transition:background .15s ease;
+  }
+  .ic:hover{background:rgba(255,255,255,.14)}
+  .ic svg{width:21px; height:21px}
+  .seek{
+    flex:1 1 auto; min-width:60px; height:8px; cursor:pointer;
+    accent-color:var(--naranja); background:transparent;
+  }
+  .t{
+    color:var(--soft); font-size:clamp(13px,1.5vw,15px);
+    font-variant-numeric:tabular-nums; min-width:44px; text-align:center; flex:0 0 auto;
+  }
   .actions{display:flex; flex-wrap:wrap; gap:14px; margin-top:22px; align-items:center}
   .btn{
     display:inline-flex; align-items:center; gap:9px;
@@ -65,14 +96,90 @@
     <div class="rule"></div>
 
     <div class="player">
-      <video controls controlsList="nodownload noremoteplayback" disablePictureInPicture
-             preload="metadata" playsinline poster="poster.png" oncontextmenu="return false">
-        <source src="video.mp4?v=1781959464" type="video/mp4">
-        Tu navegador no reproduce video HTML5.
-      </video>
+      <div class="vidwrap">
+        <video id="vid" preload="metadata" playsinline poster="poster.png"
+               controlsList="nodownload noremoteplayback" disablePictureInPicture
+               oncontextmenu="return false">
+          <source src="video.mp4?v=1781961618" type="video/mp4">
+          Tu navegador no reproduce video HTML5.
+        </video>
+        <button class="bigplay" id="bigplay" type="button" aria-label="Reproducir">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 4 20 12 6 20" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div class="ctrl">
+        <button class="ic" id="pp" type="button" aria-label="Reproducir o pausar"></button>
+        <span class="t" id="cur">0:00</span>
+        <input class="seek" id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Progreso del video">
+        <span class="t" id="dur">0:00</span>
+        <button class="ic" id="mute" type="button" aria-label="Silenciar"></button>
+        <button class="ic" id="fs" type="button" aria-label="Pantalla completa"></button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="btn" href="video.mp4?v=1781961618" download="Supremacia-constitucional-Daniel-Babun.mp4">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+        Descargar video
+      </a>
     </div>
 
     <footer>Universidad de San Pedro Sula · Facultad de Derecho · Trabajo de Derecho Constitucional.</footer>
   </main>
+
+<script>
+(function(){
+  var v=document.getElementById('vid'),
+      bp=document.getElementById('bigplay'),
+      pp=document.getElementById('pp'),
+      seek=document.getElementById('seek'),
+      cur=document.getElementById('cur'),
+      durEl=document.getElementById('dur'),
+      mute=document.getElementById('mute'),
+      fs=document.getElementById('fs'),
+      player=document.querySelector('.player');
+
+  var I_PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 4 20 12 6 20" fill="currentColor"/></svg>';
+  var I_PAUSE='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4.2" height="16" fill="currentColor"/><rect x="13.8" y="4" width="4.2" height="16" fill="currentColor"/></svg>';
+  var I_VOL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a4 4 0 0 1 0 7"/></svg>';
+  var I_MUTE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></svg>';
+  var I_FS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+
+  function fmt(s){ if(!isFinite(s)||s<0)s=0; s=Math.floor(s); var m=Math.floor(s/60), ss=s%60; return m+':'+(ss<10?'0':'')+ss; }
+  function refresh(){ var playing=!v.paused&&!v.ended; pp.innerHTML=playing?I_PAUSE:I_PLAY; bp.classList.toggle('hidden',playing); }
+  function toggle(){ if(v.paused||v.ended){ v.play(); } else { v.pause(); } }
+
+  v.addEventListener('loadedmetadata',function(){ durEl.textContent=fmt(v.duration); });
+  var scrubbing=false;
+  v.addEventListener('timeupdate',function(){
+    cur.textContent=fmt(v.currentTime);
+    if(!scrubbing && v.duration){ seek.value=String(Math.round(v.currentTime/v.duration*1000)); }
+  });
+  v.addEventListener('play',refresh);
+  v.addEventListener('pause',refresh);
+  v.addEventListener('ended',refresh);
+  v.addEventListener('click',toggle);
+  bp.addEventListener('click',toggle);
+  pp.addEventListener('click',toggle);
+
+  seek.addEventListener('pointerdown',function(){ scrubbing=true; });
+  window.addEventListener('pointerup',function(){ scrubbing=false; });
+  seek.addEventListener('input',function(){ if(v.duration){ v.currentTime=seek.value/1000*v.duration; cur.textContent=fmt(v.currentTime); } });
+
+  mute.innerHTML=I_VOL;
+  mute.addEventListener('click',function(){ v.muted=!v.muted; mute.innerHTML=v.muted?I_MUTE:I_VOL; });
+
+  fs.innerHTML=I_FS;
+  fs.addEventListener('click',function(){
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+    } else if(player.requestFullscreen){ player.requestFullscreen(); }
+    else if(player.webkitRequestFullscreen){ player.webkitRequestFullscreen(); }
+    else if(v.webkitEnterFullscreen){ v.webkitEnterFullscreen(); }
+  });
+
+  refresh();
+})();
+</script>
 </body>
 </html>
